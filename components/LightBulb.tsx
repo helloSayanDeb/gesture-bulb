@@ -6,26 +6,25 @@ interface LightBulbProps {
 
 export const LightBulb: React.FC<LightBulbProps> = ({ isOn }) => {
   return (
-    <div className="relative flex flex-col items-center justify-start h-full pt-0 transform transition-all duration-700 ease-in-out">
-      {/* Hanging Wire */}
-      <div className="w-[1px] h-32 md:h-48 bg-[#333] z-10"></div>
+    <div className="relative flex flex-col items-center justify-start h-full pt-0 transform transition-all duration-700 ease-in-out w-full">
+      {/* Hanging Wire - Responsive Height using Viewport Units (VH) for automatic sliding */}
+      {/* h-[5vh] on mobile keeps it short so it doesn't overlap bottom elements */}
+      <div className="w-[1px] h-[5vh] sm:h-[15vh] md:h-[20vh] bg-[#333] z-10 transition-all duration-500"></div>
       
       {/* Bulb Socket - Industrial Sharp Look */}
-      <div className="w-16 h-12 bg-[#1a1a1a] z-10 flex flex-col items-center justify-end pb-1 border-b border-black shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-         <div className="w-14 h-1 bg-[#333] mb-1.5"></div>
-         <div className="w-14 h-1 bg-[#333] mb-1.5"></div>
-         <div className="w-14 h-1 bg-[#333]"></div>
+      <div className="w-12 h-9 md:w-16 md:h-12 bg-[#1a1a1a] z-10 flex flex-col items-center justify-end pb-1 border-b border-black shadow-[0_4px_10px_rgba(0,0,0,0.5)] transition-all duration-500">
+         <div className="w-10 h-0.5 md:w-14 md:h-1 bg-[#333] mb-1 md:mb-1.5"></div>
+         <div className="w-10 h-0.5 md:w-14 md:h-1 bg-[#333] mb-1 md:mb-1.5"></div>
+         <div className="w-10 h-0.5 md:w-14 md:h-1 bg-[#333]"></div>
       </div>
 
       {/* The Bulb */}
       <div className={`relative -mt-1 transition-all duration-700 ease-in-out ${isOn ? 'bulb-on' : ''}`}>
         <svg
-          width="200"
-          height="200"
           viewBox="0 0 200 200"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="transition-all duration-700 ease-in-out"
+          className="transition-all duration-700 ease-in-out w-32 h-32 md:w-[200px] md:h-[200px]"
         >
           {/* Glass Bulb Body */}
           <path
@@ -64,16 +63,16 @@ export const LightBulb: React.FC<LightBulbProps> = ({ isOn }) => {
         {/* We keep the div in DOM but fade opacity for smoother transition than conditional rendering */}
         <div className={`absolute top-0 left-0 w-full h-full pointer-events-none transition-opacity duration-1000 ease-in-out ${isOn ? 'opacity-100' : 'opacity-0'}`}>
              {/* Inner Glow */}
-             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white rounded-full blur-xl opacity-20"></div>
+             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-32 md:h-32 bg-white rounded-full blur-xl opacity-20"></div>
              {/* Outer Glow */}
-             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-100 rounded-full blur-3xl opacity-10"></div>
+             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 md:w-64 md:h-64 bg-yellow-100 rounded-full blur-3xl opacity-10"></div>
         </div>
       </div>
       
       {/* Light Cast on Background (Simulated) */}
       <div 
-        className={`absolute top-0 left-1/2 transform -translate-x-1/2 -z-10 w-[800px] h-[800px] rounded-full transition-opacity duration-1000 ease-in-out pointer-events-none
-          ${isOn ? 'opacity-5 bg-white blur-[100px]' : 'opacity-0'}
+        className={`absolute top-0 left-1/2 transform -translate-x-1/2 -z-10 w-[300px] h-[300px] md:w-[800px] md:h-[800px] rounded-full transition-opacity duration-1000 ease-in-out pointer-events-none
+          ${isOn ? 'opacity-5 bg-white blur-[50px] md:blur-[100px]' : 'opacity-0'}
         `}
       ></div>
     </div>

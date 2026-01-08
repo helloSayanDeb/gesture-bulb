@@ -208,7 +208,7 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
   }, [model, activeStream, detect]);
 
   return (
-    <div className="absolute bottom-8 right-8 z-40">
+    <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-40">
       {/* Hidden Video Element for Processing */}
       <video
         ref={videoRef}
@@ -219,8 +219,8 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
         height="480"
       />
 
-      {/* Preview UI - Metallic Frame */}
-      <div className="relative bg-[#050505] p-1 border-l border-t border-[#333] border-r border-b border-black shadow-2xl w-32 md:w-48 transition-all hover:border-[#555]">
+      {/* Preview UI - Metallic Frame - Responsive Sizing */}
+      <div className="relative bg-[#050505] p-1 border-l border-t border-[#333] border-r border-b border-black shadow-2xl w-24 md:w-32 lg:w-48 transition-all hover:border-[#555]">
         <div className="relative bg-black w-full overflow-hidden">
             {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a] text-[10px] uppercase tracking-widest text-center p-2 text-gray-500 font-bold">
@@ -252,10 +252,10 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
         </div>
         
         <div className="mt-2 flex justify-between items-center px-1 pb-1">
-             <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">
+             <span className="text-[7px] md:text-[9px] text-gray-600 font-bold uppercase tracking-widest">
                 Sensor Feed
              </span>
-             <span className="text-[9px] text-[#333] font-mono">
+             <span className="text-[7px] md:text-[9px] text-[#333] font-mono">
                 {isLoading ? '...' : 'LIVE'}
              </span>
         </div>

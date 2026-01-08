@@ -47,39 +47,39 @@ function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col">
-      {/* Header / Status Bar */}
-      <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start z-30 pointer-events-none">
-        <div>
-           <h1 className="text-4xl font-bold text-white tracking-tighter uppercase font-[Syne]">
-             Gesture<span className="text-gray-500">Lite</span>
-           </h1>
-           <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-[0.2em] font-semibold border-l-2 border-gray-800 pl-3">
-             TensorFlow.js • MediaPipe
-           </p>
-        </div>
-
-        <div className="flex flex-col items-end space-y-2 pointer-events-auto">
-           {/* Metallic Card Component */}
-           <div className="bg-[#050505] border-l border-t border-[#333] border-r border-b border-black p-4 w-64 metallic-sheen">
-             <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 font-bold">Detected Gesture</div>
-             <div className={`text-xl font-[Syne] font-bold ${gestureInfo.color} flex items-center justify-between`}>
-                <span>{gestureInfo.text}</span>
-                <span className={`w-3 h-3 ${currentGesture !== GestureType.NONE ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'bg-[#111] border border-[#333]'}`}></span>
-             </div>
-           </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <main className="flex-grow relative z-10 flex items-center justify-center">
-        {/* Subtle grid background for tech feel */}
-        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" 
+      {/* Global Grid Background - Covers entire screen including behind header */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" 
              style={{
                backgroundImage: `linear-gradient(#222 1px, transparent 1px), linear-gradient(90deg, #222 1px, transparent 1px)`,
                backgroundSize: '40px 40px'
              }}
-        ></div>
-        
+      ></div>
+
+      {/* Header / Status Bar - RELATIVE positioning to prevent overlap */}
+      <header className="relative w-full p-4 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-start gap-4 z-30 shrink-0 pointer-events-none">
+        <div className="pointer-events-auto">
+           <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tighter uppercase font-[Syne]">
+             Gesture<span className="text-gray-500">Lite</span>
+           </h1>
+           <p className="text-[9px] md:text-[10px] text-gray-500 mt-1 md:mt-2 uppercase tracking-[0.2em] font-semibold border-l-2 border-gray-800 pl-3">
+             TensorFlow.js • MediaPipe
+           </p>
+        </div>
+
+        <div className="flex flex-col items-start md:items-end space-y-2 pointer-events-auto w-full md:w-auto">
+           {/* Metallic Card Component */}
+           <div className="bg-[#050505] border-l border-t border-[#333] border-r border-b border-black p-3 md:p-4 w-full md:w-64 metallic-sheen shadow-lg transition-all">
+             <div className="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest mb-1 md:mb-2 font-bold">Detected Gesture</div>
+             <div className={`text-lg md:text-xl font-[Syne] font-bold ${gestureInfo.color} flex items-center justify-between`}>
+                <span>{gestureInfo.text}</span>
+                <span className={`w-2 h-2 md:w-3 md:h-3 ${currentGesture !== GestureType.NONE ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'bg-[#111] border border-[#333]'}`}></span>
+             </div>
+           </div>
+        </div>
+      </header>
+
+      {/* Main Content Area - Fills remaining space */}
+      <main className="flex-grow relative z-10 flex items-start justify-center overflow-hidden">
         <LightBulb isOn={isBulbOn} />
       </main>
 
@@ -95,7 +95,7 @@ function App() {
       )}
 
       {/* Keyboard Accessibility Hint */}
-      <div className="absolute bottom-6 left-8 text-gray-600 text-[10px] uppercase tracking-widest opacity-50 z-20 font-bold">
+      <div className="absolute bottom-4 left-4 md:bottom-6 md:left-8 text-gray-600 text-[8px] md:text-[10px] uppercase tracking-widest opacity-50 z-20 font-bold pointer-events-none">
         [Spacebar] Manual Override
       </div>
     </div>
