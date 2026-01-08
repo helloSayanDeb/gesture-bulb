@@ -1,0 +1,7 @@
+{
+  "name": "Gesture Bulb",
+  "description": "Control a virtual light bulb using hand gestures detected via your webcam. Point up to turn on, make an OK sign to turn off.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
