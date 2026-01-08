@@ -1,7 +1,7 @@
 export enum GestureType {
   NONE = 'NONE',
-  INDEX_UP = 'INDEX_UP',
-  OK_SIGN = 'OK_SIGN',
+  OPEN_HAND = 'OPEN_HAND',
+  CLOSED_FIST = 'CLOSED_FIST',
 }
 
 export interface HandKeypoint {

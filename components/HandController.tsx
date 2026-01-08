@@ -14,13 +14,21 @@ interface HandControllerProps {
 
 export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCameraReady }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const [model, setModel] = useState<HandDetector | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [permissionGranted, setPermissionGranted] = useState(false);
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
+  
   const requestRef = useRef<number>(0);
-  const lastGestureRef = useRef<GestureType>(GestureType.NONE);
-  const lastGestureTimeRef = useRef<number>(0);
+  
+  // Debounce Refs
+  const lastRawGestureRef = useRef<GestureType>(GestureType.NONE); // The gesture detected in the current frame
+  const confirmedGestureRef = useRef<GestureType>(GestureType.NONE); // The last gesture successfully sent to the app
+  const lastGestureTimeRef = useRef<number>(0); // Timestamp when the raw gesture started
+  
+  // Config
+  const STABILITY_THRESHOLD_MS = 150; // Gesture must be held this long to register
 
   // Initialize TensorFlow and Model
   useEffect(() => {
@@ -56,7 +64,7 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
       }
     };
 
-    // Give the scripts a moment to parse if they haven't already (though they are blocking in head)
+    // Give the scripts a moment to parse if they haven't already
     if ((window as any).tf) {
         loadModel();
     } else {
@@ -67,11 +75,13 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
 
   // Initialize Camera
   useEffect(() => {
+    let stream: MediaStream | null = null;
+
     const setupCamera = async () => {
       if (!videoRef.current) return;
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
             width: 640,
             height: 480,
@@ -80,12 +90,16 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
           audio: false,
         });
 
+        // Update state with the new stream
+        setActiveStream(stream);
+
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
             // Wait for metadata to load to ensure dimensions are correct
             videoRef.current.onloadedmetadata = () => {
-                videoRef.current?.play().catch(e => console.error("Play error:", e));
-                setPermissionGranted(true);
+                videoRef.current?.play().catch(e => {
+                  if (e.name !== 'AbortError') console.error("Play error:", e);
+                });
                 onCameraReady();
             };
         }
@@ -99,16 +113,30 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
 
     return () => {
       // Cleanup stream
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
+      setActiveStream(null);
     };
   }, [onCameraReady]);
 
+  // Sync Preview Video
+  // We use activeStream state as dependency to ensure preview updates if stream changes
+  useEffect(() => {
+    if (activeStream && previewVideoRef.current) {
+       // Only update if it's different to prevent video flickering
+       if (previewVideoRef.current.srcObject !== activeStream) {
+           previewVideoRef.current.srcObject = activeStream;
+           previewVideoRef.current.play().catch(e => {
+             if (e.name !== 'AbortError') console.error("Preview play error:", e);
+           });
+       }
+    }
+  }, [activeStream]);
+
   // Detection Loop
   const detect = useCallback(async () => {
-    if (!model || !videoRef.current || !permissionGranted) return;
+    if (!model || !videoRef.current || !activeStream) return;
 
     if (videoRef.current.readyState === 4) {
       try {
@@ -116,25 +144,51 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
         
         if (hands && hands.length > 0) {
           const keypoints = hands[0].keypoints as HandKeypoint[];
-          const gesture = detectGesture(keypoints);
+          const currentRawGesture = detectGesture(keypoints);
           
-          // Simple debouncing / persistence check
           const now = Date.now();
-          if (gesture !== GestureType.NONE) {
-            if (gesture === lastGestureRef.current) {
-                // If same gesture held for > 300ms, trigger
-                if (now - lastGestureTimeRef.current > 300) {
-                     onGesture(gesture);
+
+          // Debounce Logic
+          if (currentRawGesture === lastRawGestureRef.current) {
+            // The gesture is consistent with the previous frame
+            const duration = now - lastGestureTimeRef.current;
+            
+            if (duration > STABILITY_THRESHOLD_MS) {
+                // The gesture has been held long enough to be considered stable
+                
+                // Only trigger update if it's different from the last CONFIRMED gesture
+                // This prevents firing the callback repeatedly for the same state
+                if (currentRawGesture !== confirmedGestureRef.current) {
+                    confirmedGestureRef.current = currentRawGesture;
+                    onGesture(currentRawGesture);
                 }
-            } else {
-                // New gesture detected, reset timer
-                lastGestureRef.current = gesture;
-                lastGestureTimeRef.current = now;
             }
           } else {
-              // Reset if no gesture
-              lastGestureRef.current = GestureType.NONE;
+            // The gesture changed since the last frame
+            // Reset the timer and update the raw reference
+            lastRawGestureRef.current = currentRawGesture;
+            lastGestureTimeRef.current = now;
           }
+
+        } else {
+            // No hands detected
+            // Treat as NONE, but apply same debounce logic so we don't flicker if hand is lost for 1 frame
+            const currentRawGesture = GestureType.NONE;
+            const now = Date.now();
+            
+            if (currentRawGesture === lastRawGestureRef.current) {
+                if (now - lastGestureTimeRef.current > STABILITY_THRESHOLD_MS) {
+                     // We don't necessarily want to trigger 'NONE' actions (unless we want to pause?)
+                     // But we should update our confirmed state so we know we aren't in a gesture.
+                     if (currentRawGesture !== confirmedGestureRef.current) {
+                        confirmedGestureRef.current = currentRawGesture;
+                        onGesture(currentRawGesture);
+                     }
+                }
+            } else {
+                lastRawGestureRef.current = currentRawGesture;
+                lastGestureTimeRef.current = now;
+            }
         }
       } catch (err) {
         console.warn("Detection error", err);
@@ -142,19 +196,19 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
     }
 
     requestRef.current = requestAnimationFrame(detect);
-  }, [model, permissionGranted, onGesture]);
+  }, [model, activeStream, onGesture]);
 
   useEffect(() => {
-    if (model && permissionGranted) {
+    if (model && activeStream) {
       requestRef.current = requestAnimationFrame(detect);
     }
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [model, permissionGranted, detect]);
+  }, [model, activeStream, detect]);
 
   return (
-    <div className="absolute bottom-4 right-4 z-40">
+    <div className="absolute bottom-8 right-8 z-40">
       {/* Hidden Video Element for Processing */}
       <video
         ref={videoRef}
@@ -165,44 +219,45 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
         height="480"
       />
 
-      {/* Preview UI */}
-      <div className="relative bg-gray-900 rounded-xl overflow-hidden border-2 border-gray-700 shadow-xl w-32 md:w-48 transition-all hover:scale-105">
-        {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-xs text-center p-2 text-gray-400">
-                Loading AI...
-            </div>
-        )}
-        {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-xs text-center p-2 text-white">
-                {error}
-            </div>
-        )}
+      {/* Preview UI - Metallic Frame */}
+      <div className="relative bg-[#050505] p-1 border-l border-t border-[#333] border-r border-b border-black shadow-2xl w-32 md:w-48 transition-all hover:border-[#555]">
+        <div className="relative bg-black w-full overflow-hidden">
+            {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a] text-[10px] uppercase tracking-widest text-center p-2 text-gray-500 font-bold">
+                    Initializing AI
+                </div>
+            )}
+            {error && (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-900/20 text-[10px] text-center p-2 text-red-500 font-bold uppercase">
+                    {error}
+                </div>
+            )}
+            
+            {/* We mirror the video for natural interaction */}
+            {activeStream && (
+                <video
+                    ref={previewVideoRef}
+                    className="w-full h-auto transform scale-x-[-1] opacity-60 grayscale hover:grayscale-0 transition-all duration-500"
+                    playsInline
+                    muted
+                />
+            )}
+        </div>
         
-        {/* We mirror the video for natural interaction */}
-        {permissionGranted && (
-             <video
-                ref={(node) => {
-                    // This is a bit of a hack to mirror the stream to a visible video element
-                    // since the original ref is hidden for processing.
-                    // In a real app we might use a canvas to draw the output.
-                    if (node && videoRef.current) {
-                        node.srcObject = videoRef.current.srcObject;
-                        node.play();
-                    }
-                }}
-                className="w-full h-auto transform scale-x-[-1]"
-                playsInline
-                muted
-             />
-        )}
+        {/* Status indicator */}
+        <div className="absolute -top-1 -right-1 flex space-x-0.5">
+             <div className="w-1 h-1 bg-[#333]"></div>
+             <div className="w-1 h-1 bg-[#333]"></div>
+             <div className={`w-1 h-1 ${activeStream ? 'bg-green-500' : 'bg-red-500'}`}></div>
+        </div>
         
-        <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm p-1">
-             <div className="flex items-center justify-center space-x-1">
-                 <div className={`w-2 h-2 rounded-full ${permissionGranted ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                 <span className="text-[10px] text-gray-300 font-medium">
-                    {isLoading ? 'Init Model...' : permissionGranted ? 'Active' : 'No Camera'}
-                 </span>
-             </div>
+        <div className="mt-2 flex justify-between items-center px-1 pb-1">
+             <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">
+                Sensor Feed
+             </span>
+             <span className="text-[9px] text-[#333] font-mono">
+                {isLoading ? '...' : 'LIVE'}
+             </span>
         </div>
       </div>
     </div>
