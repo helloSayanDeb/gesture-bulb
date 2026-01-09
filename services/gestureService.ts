@@ -54,14 +54,14 @@ export const detectGesture = (keypoints: HandKeypoint[]): GestureType => {
     // Heuristics derived from hand geometry:
     
     // Threshold for "Curled" (Fist)
-    // Reduced to 1.35 for stricter fist detection.
-    // The finger tip must be pulled in closer to the MCP.
-    const isCurled = tipToMcp < (segmentLen * 1.35);
+    // Increased to 1.55 to make fist detection more sensitive (easier to trigger).
+    // Previously 1.35 which was too strict.
+    const isCurled = tipToMcp < (segmentLen * 1.55);
 
     // Threshold for "Extended" (Open Hand)
-    // Set to 1.9 to ensure fingers are actually straight.
-    // Creates a neutral zone between 1.35 and 1.9 where no gesture is detected.
-    const isExtended = tipToMcp > (segmentLen * 1.9);
+    // Decreased to 1.7 to make open hand detection more sensitive (easier to trigger).
+    // Previously 1.9 which was too strict.
+    const isExtended = tipToMcp > (segmentLen * 1.7);
 
     return { isCurled, isExtended };
   };

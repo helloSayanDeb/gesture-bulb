@@ -219,8 +219,8 @@ export const HandController: React.FC<HandControllerProps> = ({ onGesture, onCam
         height="480"
       />
 
-      {/* Preview UI - Metallic Frame - Responsive Sizing */}
-      <div className="relative bg-[#050505] p-1 border-l border-t border-[#333] border-r border-b border-black shadow-2xl w-24 md:w-32 lg:w-48 transition-all hover:border-[#555]">
+      {/* Preview UI - Metallic Frame - Responsive Sizing - INCREASED SIZE */}
+      <div className="relative bg-[#050505] p-1 border-l border-t border-[#333] border-r border-b border-black shadow-2xl w-32 md:w-48 lg:w-64 transition-all hover:border-[#555]">
         <div className="relative bg-black w-full overflow-hidden">
             {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a] text-[10px] uppercase tracking-widest text-center p-2 text-gray-500 font-bold">
